@@ -1,0 +1,308 @@
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+build/
+bld/
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio files
+.vs/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Rider files
+.idea/
+
+# ASP.NET
+*.log
+*.vspscc
+*.vssscc
+*.ncrunch*
+*.user
+*.suo
+*.cache
+*.csproj.user
+*.csproj.vspscc
+*.csproj.vssscc
+*.vbproj.user
+*.vbproj.vspscc
+*.vbproj.vssscc
+*.pdb
+*.publish.xml
+*.scmproj
+*.userprefs
+
+# Resharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+
+# DotCover
+*.dotCover
+
+# NCrunch
+*.ncrunch*
+.*crunch*.local.xml
+nCrunchTemp_*
+
+# TeamCity
+_TeamCity*
+
+# DotTrace
+*.dotTrace
+
+# Backup & report files
+*_i.c
+*_p.c
+*_i.h
+*_p.h
+*.ilk
+*.meta
+*.obj
+*.pch
+*.pdb
+*.pgc
+*.pgd
+*.rsp
+*.sbr
+*.tlb
+*.tli
+*.tlh
+*.tmp
+*.tmp_proj
+*.log
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svclog
+*.scc
+
+# Chutzpah Test files
+_Chutzpah*
+
+# Visual Studio profiler
+*.psess
+*.vsp
+*.vspx
+*.sap
+
+# TFS 2012 Local Workspace
+$tf/
+
+# Guidance Automation Toolkit
+*.gpState
+
+# ReSharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+
+# JustCode
+.JustCode
+
+# TeamCity
+_TeamCity*
+
+# DotTrace
+*.dotTrace
+
+# NCrunch
+*.ncrunch*
+.*crunch*.local.xml
+nCrunchTemp_*
+
+# DocProject
+DocProject/buildhelp/
+DocProject/Help/*.HxT
+DocProject/Help/*.HxC
+DocProject/Help/*.hhc
+DocProject/Help/*.hhk
+DocProject/Help/*.hhp
+DocProject/Help/Html2
+DocProject/Help/html
+
+# Click-Once
+publish/
+
+# Publish Web Output
+*.Publish.xml
+
+# NuGet Packages
+*.nupkg
+# The packages folder can be ignored because of Package Restore
+**/packages/*
+# except build/, which is used as an MSBuild target.
+!**/packages/build/
+# Uncomment if necessary however generally it will be regenerated when needed
+#!**/packages/repositories.config
+
+# Windows Installer files
+*.cab
+*.msi
+*.msm
+*.msp
+
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Mac desktop service store files
+.DS_Store
+
+# Python Tools for Visual Studio (PTVS)
+__pycache__/
+*.pyc
+
+# Node.js Tools for Visual Studio (NTVS)
+node_modules/
+
+# Visual Studio 6 build log
+*.plg
+
+# Visual Studio 6 workspace options file
+*.opt
+
+# Visual Studio 6 auto-generated workspace file (contains absolute paths)
+*.vbw
+
+# Visual Studio LightSwitch build output
+*.HTMLClient/GeneratedArtifacts
+*.DesktopClient/GeneratedArtifacts
+*.DesktopClient/ModelManifest.xml
+*.Server/GeneratedArtifacts
+*.Server/ModelManifest.xml
+*.Server/DataSources
+*.Server/obj/
+
+# Paket dependency manager
+.paket/paket.exe
+paket-files/
+
+# FAKE - F# Make
+.fake/
+
+# JetBrains Rider
+.idea/
+
+# CodeRush
+.cr/
+
+# Python Tools for Visual Studio (PTVS)
+__pycache__/
+*.pyc
+
+# Cake - Uncomment if you are using it
+# tools/**/Cake.exe
+# tools/**/Cake.dll
+# tools/**/Cake.Core.dll
+# tools/**/Cake.Common.dll
+# tools/**/Cake.exe.config
+# tools/**/Cake.dll.config
+# tools/**/Cake.Core.dll.config
+# tools/**/Cake.Common.dll.config
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# StyleCop
+StyleCopReport.xml
+
+# Files built by Visual Studio
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Visual Studio 2017
+.vs/
+
+# Visual Studio Code
+.vscode/
+
+# Windows Installer files
+*.cab
+*.msi
+*.msm
+*.msp
+
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Mac desktop service store files
+.DS_Store
+
+# Python Tools for Visual Studio (PTVS)
+__pycache__/
+*.pyc
+
+# Node.js Tools for Visual Studio (NTVS)
+node_modules/
+
+# Visual Studio 6 build log
+*.plg
+
+# Visual Studio 6 workspace options file
+*.opt
+
+# Visual Studio 6 auto-generated workspace file (contains absolute paths)
+*.vbw
+
+# Visual Studio LightSwitch build output
+*.HTMLClient/GeneratedArtifacts
+*.DesktopClient/GeneratedArtifacts
+*.DesktopClient/ModelManifest.xml
+*.Server/GeneratedArtifacts
+*.Server/ModelManifest.xml
+*.Server/DataSources
+*.Server/obj/
+
+# Paket dependency manager
+.paket/paket.exe
+paket-files/
+
+# FAKE - F# Make
+.fake/
+
+# JetBrains Rider
+.idea/
+
+# CodeRush
+.cr/
+
+# Python Tools for Visual Studio (PTVS)
+__pycache__/
+*.pyc
+
+# Cake - Uncomment if you are using it
+# tools/**/Cake.exe
+# tools/**/Cake.dll
+# tools/**/Cake.Core.dll
+# tools/**/Cake.Common.dll
+# tools/**/Cake.exe.config
+# tools/**/Cake.dll.config
+# tools/**/Cake.Core.dll.config
+# tools/**/Cake.Common.dll.config
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# StyleCop
+StyleCopReport.xml
