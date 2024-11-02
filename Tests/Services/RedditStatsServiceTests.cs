@@ -6,13 +6,15 @@ using SharedKernel.Interfaces;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
+using Application.Options;
 
 namespace Tests.Services
 {
-    public class RedditStatsServiceTests
+    public class RedditStatsServiceTests : IDisposable
     {
         private readonly Mock<IRedditApiService> _redditApiService;
         private readonly Mock<ILogger<RedditStatsService>> _logger;
+        private readonly Mock<IRateLimiter> _rateLimiter;
         private readonly RedditStatsService _sut;
         private readonly CancellationTokenSource _cts;
 
@@ -20,89 +22,93 @@ namespace Tests.Services
         {
             _redditApiService = new Mock<IRedditApiService>();
             _logger = new Mock<ILogger<RedditStatsService>>();
-            _sut = new RedditStatsService(_redditApiService.Object, _logger.Object);
+            _rateLimiter = new Mock<IRateLimiter>();
+            _sut = new RedditStatsService(
+                _redditApiService.Object,
+                _rateLimiter.Object,
+                _logger.Object,
+                new SubredditTrackerOptions { ProcessorCount = 1 }
+            );
             _cts = new CancellationTokenSource();
-            _cts.CancelAfter(TimeSpan.FromSeconds(5)); // Timeout after 5 seconds
+            _cts.CancelAfter(TimeSpan.FromSeconds(5));
             
-            // Setup default mock behavior
+            SetupDefaultMocks();
+        }
+
+        private void SetupDefaultMocks()
+        {
             _redditApiService
                 .Setup(x => x.GetLatestPostsAsync(It.IsAny<string>(), It.IsAny<int>()))
                 .ReturnsAsync(new RedditApiResult(Array.Empty<RedditPostDto>(), new Dictionary<string, string>()));
-        }
 
+            _rateLimiter
+                .Setup(x => x.WaitForAvailability())
+                .Returns(Task.CompletedTask);
+        }
 
         [Fact]
-        public async Task StopTracking_WhenTrackerExists_ShouldRemoveTracker()
+        public async Task StartTracking_WithNullSubreddit_ThrowsArgumentNullException()
         {
-            // Arrange
-            var subreddit = "testsubreddit";
-            var shortTimeoutCts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
-
-            try
-            {
-                // Start tracking (expected to be cancelled)
-                await Assert.ThrowsAsync<OperationCanceledException>(
-                    async () => await _sut.StartTracking(subreddit, shortTimeoutCts.Token)
-                );
-
-                // Act
-                await _sut.StopTracking(subreddit);
-
-                // Assert - Starting again should create a new tracker
-                shortTimeoutCts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
-                await Assert.ThrowsAsync<OperationCanceledException>(
-                    async () => await _sut.StartTracking(subreddit, shortTimeoutCts.Token)
-                );
-
-                _redditApiService.Verify(x => x.GetLatestPostsAsync(
-                    It.Is<string>(s => s == subreddit), 
-                    It.IsAny<int>()), 
-                    Times.Exactly(2));
-            }
-            finally
-            {
-                await _sut.StopTracking(subreddit);
-            }
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentNullException>(
+                () => _sut.StartTracking(null!, _cts.Token)
+            );
         }
+
 
         [Fact]
         public async Task TrackPost_ShouldCreateTrackerIfNotExists()
         {
             // Arrange
-            var post = new RedditPostDto { Subreddit = "testsubreddit" };
+            var post = new RedditPostDto { Id = "123", Subreddit = "testsubreddit", Author = "testauthor" };
 
             try
             {
                 // Act
-                await _sut.TrackPost(post);
+                await _sut.TrackPost(post, _cts.Token);
 
                 // Assert
-                await _sut.TrackPost(post); // Second call should use same tracker
-                _redditApiService.Verify(x => x.GetLatestPostsAsync(
-                    It.Is<string>(s => s == post.Subreddit), 
-                    It.IsAny<int>()), 
-                    Times.Never());
+                await _sut.TrackPost(post, _cts.Token); // Second call should use same tracker
+                _redditApiService.Verify(
+                    x => x.GetLatestPostsAsync(
+                        It.Is<string>(s => s == post.Subreddit),
+                        It.IsAny<int>()
+                    ),
+                    Times.Never()
+                );
             }
             finally
             {
-                await _sut.StopTracking(post.Subreddit);
+                // Cleanup
+                _sut.Dispose();
             }
         }
 
         [Fact]
-        public async Task TrackPost_WithNullSubreddit_ShouldNotThrow()
+        public async Task TrackPost_WithNullPost_ThrowsArgumentNullException()
+        {
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentNullException>(
+                () => _sut.TrackPost(null!, _cts.Token)
+            );
+        }
+
+        [Fact]
+        public async Task TrackPost_WithNullSubreddit_ThrowsArgumentNullException()
         {
             // Arrange
             var post = new RedditPostDto { Subreddit = null };
 
             // Act & Assert
-            var exception = await Record.ExceptionAsync(() => _sut.TrackPost(post));
-            Assert.Null(exception);
+            await Assert.ThrowsAsync<ArgumentNullException>(
+                () => _sut.TrackPost(post, _cts.Token)
+            );
         }
 
         public void Dispose()
         {
             _cts.Dispose();
+            _sut.Dispose();
         }
     }
 }

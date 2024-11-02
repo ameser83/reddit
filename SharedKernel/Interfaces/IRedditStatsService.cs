@@ -4,7 +4,6 @@ namespace SharedKernel.Interfaces;
 
 public interface IRedditStatsService
 {
-    void TrackPost(RedditPostDto post);
+    Task TrackPost(RedditPostDto post, CancellationToken cancellationToken);
     Task StartTracking(string subreddit, CancellationToken cancellationToken);
-    Task StopTracking();
 }

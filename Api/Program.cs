@@ -14,7 +14,11 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<IRedditService, RedditService>();
 builder.Services.AddScoped<IRedditApiService, RedditApiService>();
 builder.Services.AddScoped<IRedditStatsService, RedditStatsService>();
+builder.Services.AddScoped<IRateLimiter, RateLimiter>();
 
+
+// Register RateLimiter as a singleton since it should be shared across requests
+builder.Services.AddSingleton<RateLimiter>();
 
 builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 

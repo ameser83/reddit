@@ -7,31 +7,34 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Dtos;
 using SharedKernel.Interfaces;
+using Application.Options;
 
 namespace Application.Services
 {
-    // Handles tracking for a single subreddit
     public class SubredditTracker
     {
         private readonly string _subreddit;
         private readonly IRedditApiService _redditApiService;
-        private readonly RateLimiter _rateLimiter;
+        private readonly IRateLimiter _rateLimiter;
         private readonly ILogger _logger;
+        private readonly SubredditTrackerOptions _options;
         private readonly ConcurrentDictionary<string, PostStats> _postStats;
-        private CancellationTokenSource? _cancellationTokenSource;
-        private Task? _trackingTask;
         private readonly Channel<RedditPostDto> _postProcessingChannel;
+        private CancellationTokenSource? _cancellationTokenSource;
+        private volatile bool _isTracking;
 
         public SubredditTracker(
             string subreddit,
             IRedditApiService redditApiService,
-            RateLimiter rateLimiter,
-            ILogger logger)
+            IRateLimiter rateLimiter,
+            ILogger logger,
+            SubredditTrackerOptions? options = null)
         {
             _subreddit = subreddit;
             _redditApiService = redditApiService;
             _rateLimiter = rateLimiter;
             _logger = logger;
+            _options = options ?? new SubredditTrackerOptions();
             _postStats = new ConcurrentDictionary<string, PostStats>();
             _postProcessingChannel = Channel.CreateUnbounded<RedditPostDto>(
                 new UnboundedChannelOptions { SingleReader = false, SingleWriter = true });
@@ -39,36 +42,32 @@ namespace Application.Services
 
         public async Task StartTracking(CancellationToken cancellationToken)
         {
-            if (_trackingTask != null) return;
+            if (_isTracking)
+            {
+                return;
+            }
 
+            _isTracking = true;
             _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            var token = _cancellationTokenSource.Token;
+            
+            try
+            {
+                await StartProcessors(_cancellationTokenSource.Token);
+            }
+            finally
+            {
+                _isTracking = false;
+            }
+        }
 
-            // Start post processors
-            var processorCount = Environment.ProcessorCount;
-            var processors = Enumerable.Range(0, processorCount)
+        private async Task StartProcessors(CancellationToken token)
+        {
+            var processors = Enumerable.Range(0, _options.ProcessorCount)
                 .Select(_ => ProcessPostsAsync(token))
                 .ToList();
 
-            // Start the main tracking task
-            _trackingTask = Task.Run(async () =>
-            {
-                try
-                {
-                    await FetchAndProcessPosts(token);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error in tracking task for r/{Subreddit}", _subreddit);
-                }
-                finally
-                {
-                    _postProcessingChannel.Writer.Complete();
-                }
-            }, token);
-
-            // Combine all tasks
-            await Task.WhenAll(processors.Concat(new[] { _trackingTask }));
+            var fetcher = FetchAndProcessPosts(token);
+            await Task.WhenAll(processors.Concat(new[] { fetcher }));
         }
 
         private async Task FetchAndProcessPosts(CancellationToken token)
@@ -108,7 +107,7 @@ namespace Application.Services
                 {
                     var stats = _postStats.GetOrAdd(post.Id, _ => new PostStats(post.Id));
                     await stats.UpdateStats(post);
-                    LogPostStats(stats);
+                    LogPostStats(stats, _subreddit);
                 }
                 catch (Exception ex)
                 {
@@ -117,22 +116,14 @@ namespace Application.Services
             }
         }
 
-        public async Task StopTracking()
-        {
-            if (_cancellationTokenSource != null)
-            {
-                await _cancellationTokenSource.CancelAsync();
-                _cancellationTokenSource = null;
-            }
-        }
-
-        private void LogPostStats(PostStats stats)
+        private void LogPostStats(PostStats stats, string subreddit)
         {
             _logger.LogInformation(
-                "Post {PostId} processed. Score: {Score}, Author: {Author}",
+                "Post {PostId} processed. Score: {Score}, Author: {Author} for r/{Subreddit}",
                 stats.PostId,
                 stats.Score,
-                stats.Author
+                stats.Author,
+                subreddit
             );
         }
 

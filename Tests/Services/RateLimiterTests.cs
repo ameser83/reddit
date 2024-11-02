@@ -26,7 +26,7 @@ namespace Tests.Services
             var elapsed = DateTime.UtcNow - startTime;
 
             // Assert
-            Assert.True(elapsed.TotalSeconds < 1); // Should return almost immediately
+            Assert.True(elapsed.TotalMilliseconds < 100);
         }
 
         [Fact]
@@ -36,7 +36,7 @@ namespace Tests.Services
             var headers = new Dictionary<string, string>
             {
                 ["x-ratelimit-remaining"] = "0",
-                ["x-ratelimit-reset"] = "2" // 2 second delay
+                ["x-ratelimit-reset"] = "1"
             };
             _sut.UpdateLimits(headers);
             var startTime = DateTime.UtcNow;
@@ -46,39 +46,43 @@ namespace Tests.Services
             var elapsed = DateTime.UtcNow - startTime;
 
             // Assert
-            Assert.True(elapsed.TotalSeconds >= 1.9); // Allow small margin for timing
+            Assert.True(elapsed.TotalSeconds >= 0.9);
         }
 
         [Fact]
-        public void UpdateLimits_ShouldUpdateRateLimitValues()
+        public void UpdateLimits_WithMissingHeaders_ShouldNotThrow()
         {
             // Arrange
-            var headers = new Dictionary<string, string>
-            {
-                ["x-ratelimit-remaining"] = "50",
-                ["x-ratelimit-reset"] = "30"
-            };
-
-            // Act
-            _sut.UpdateLimits(headers);
-
-            // Assert - We can only test indirectly through behavior
-            var task = _sut.WaitForAvailability();
-            Assert.True(task.IsCompleted); // Should complete immediately since remaining > 0
-        }
-
-        [Fact]
-        public void UpdateLimits_WithInvalidHeaders_ShouldNotThrow()
-        {
-            // Arrange
-            var headers = new Dictionary<string, string>
-            {
-                ["x-ratelimit-remaining"] = "invalid",
-                ["x-ratelimit-reset"] = "not a number"
-            };
+            var headers = new Dictionary<string, string>();
 
             // Act & Assert
             var exception = Record.Exception(() => _sut.UpdateLimits(headers));
+            Assert.Null(exception);
+        }
+
+        [Fact]
+        public async Task ConcurrentAccess_ShouldBeThreadSafe()
+        {
+            // Arrange
+            var tasks = new List<Task>();
+            var iterations = 100;
+
+            // Act
+            for (int i = 0; i < iterations; i++)
+            {
+                tasks.Add(Task.Run(async () =>
+                {
+                    await _sut.WaitForAvailability();
+                    _sut.UpdateLimits(new Dictionary<string, string>
+                    {
+                        ["x-ratelimit-remaining"] = "50",
+                        ["x-ratelimit-reset"] = "30"
+                    });
+                }));
+            }
+
+            // Assert
+            var exception = await Record.ExceptionAsync(() => Task.WhenAll(tasks));
             Assert.Null(exception);
         }
     }

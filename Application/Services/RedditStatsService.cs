@@ -5,62 +5,66 @@ using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System;
+using Application.Options;
 
 namespace Application.Services
 {
-    public class RedditStatsService : IRedditStatsService
+    public class RedditStatsService : IRedditStatsService, IDisposable
     {
         private readonly IRedditApiService _redditApiService;
         private readonly ILogger<RedditStatsService> _logger;
-        private readonly ConcurrentDictionary<string, SubredditTracker> _subredditTrackers;
-        private readonly RateLimiter _rateLimiter;
+        private readonly IRateLimiter _rateLimiter;
+        private readonly ConcurrentDictionary<string, SubredditTracker> _trackers;
+        private readonly SubredditTrackerOptions _trackerOptions;
+        private bool _disposed;
 
         public RedditStatsService(
             IRedditApiService redditApiService,
-            ILogger<RedditStatsService> logger)
+            IRateLimiter rateLimiter,
+            ILogger<RedditStatsService> logger,
+            SubredditTrackerOptions? trackerOptions = null)
         {
             _redditApiService = redditApiService;
+            _rateLimiter = rateLimiter;
             _logger = logger;
-            _subredditTrackers = new ConcurrentDictionary<string, SubredditTracker>();
-            _rateLimiter = new RateLimiter();
+            _trackerOptions = trackerOptions ?? new SubredditTrackerOptions();
+            _trackers = new ConcurrentDictionary<string, SubredditTracker>();
         }
 
         public async Task StartTracking(string subreddit, CancellationToken cancellationToken)
         {
-            var tracker = _subredditTrackers.GetOrAdd(subreddit, 
-                s => new SubredditTracker(s, _redditApiService, _rateLimiter, _logger));
+            ArgumentException.ThrowIfNullOrEmpty(subreddit);
+
+            var tracker = _trackers.GetOrAdd(subreddit, CreateTracker);
             await tracker.StartTracking(cancellationToken);
         }
 
-        public async Task StopTracking(string subreddit)
-        {
-            if (_subredditTrackers.TryRemove(subreddit, out var tracker))
-            {
-                await tracker.StopTracking();
-            }
-        }
+        private SubredditTracker CreateTracker(string subreddit) =>
+            new(subreddit, _redditApiService, _rateLimiter, _logger, _trackerOptions);
 
-        public Task StopTracking()
+        public async Task TrackPost(RedditPostDto post, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
-        }
+            ArgumentNullException.ThrowIfNull(post);
+            ArgumentException.ThrowIfNullOrEmpty(post.Subreddit);
 
-        public async Task TrackPost(RedditPostDto post)
-        {
-            if (string.IsNullOrEmpty(post.Subreddit))
-            {
-                _logger.LogWarning("Attempted to track post with null or empty subreddit");
-                return;
-            }
-
-            var tracker = _subredditTrackers.GetOrAdd(post.Subreddit, 
-                s => new SubredditTracker(s, _redditApiService, _rateLimiter, _logger));
+            var tracker = _trackers.GetOrAdd(post.Subreddit, CreateTracker);
             await tracker.ProcessPostAsync(post);
         }
 
-        void IRedditStatsService.TrackPost(RedditPostDto post)
+        public void Dispose()
         {
-            throw new NotImplementedException();
+            if (_disposed) return;
+            
+            foreach (var tracker in _trackers.Values)
+            {
+                if (tracker is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
+            }
+            
+            _trackers.Clear();
+            _disposed = true;
         }
     }
 }
