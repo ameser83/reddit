@@ -306,3 +306,7 @@ ScaffoldingReadMe.txt
 
 # StyleCop
 StyleCopReport.xml
+
+# appsettings.Development.json
+appsettings.Development.json
+
